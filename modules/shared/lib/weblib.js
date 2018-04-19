@@ -146,7 +146,7 @@ class Web {
 
     /**
      * alertUser(sMessage)
-     * 
+     *
      * NOTE: Legacy function for older modules (eg, DiskDump); see Component.alertUser().
      *
      * @param {string} sMessage
@@ -229,7 +229,7 @@ class Web {
 
         var request = (window.XMLHttpRequest? new window.XMLHttpRequest() : new window.ActiveXObject("Microsoft.XMLHTTP"));
         var fArrayBuffer = false, fXHR2 = (typeof request.responseType === 'string');
-        
+
         var callback = function() {
             if (request.readyState !== 4) {
                 if (progress) progress(1);
@@ -246,17 +246,17 @@ class Web {
              */
             /*
              * If the request failed due to, say, a CORS policy denial; eg:
-             * 
+             *
              *      Failed to load http://www.allbootdisks.com/downloads/Disks/Windows_95_Boot_Disk_Download48/Diskette%20Images/Windows95a.img:
              *      Redirect from 'http://www.allbootdisks.com/downloads/Disks/Windows_95_Boot_Disk_Download48/Diskette%20Images/Windows95a.img' to
              *      'http://www.allbootdisks.com/' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
              *      Origin 'http://pcjs:8088' is therefore not allowed access.
-             *      
+             *
              * and our request type was "arraybuffer", attempting to access responseText may trigger an exception; eg:
-             * 
+             *
              *      Uncaught DOMException: Failed to read the 'responseText' property from 'XMLHttpRequest': The value is only accessible if the object's
              *      'responseType' is '' or 'text' (was 'arraybuffer').
-             * 
+             *
              * We could tiptoe around these potential landmines, but the safest thing to do is wrap this code with try/catch.
              */
             try {
@@ -279,7 +279,7 @@ class Web {
             if (done) done(sURL, resource, nErrorCode);
             return [resource, nErrorCode];
         };
-        
+
         if (fAsync) {
             request.onreadystatechange = callback;
         }
@@ -313,7 +313,7 @@ class Web {
         }
 
         if (!fAsync) {
-            request.readyState = 4;     // this may already be set for synchronous requests, but I don't want to take any chances 
+            request.readyState = 4;     // this may already be set for synchronous requests, but I don't want to take any chances
             response = callback();
         }
         return response;
@@ -540,6 +540,12 @@ class Web {
      */
     static hasLocalStorage()
     {
+        if (typeof pcjsLocalStorageOverride == 'object' && pcjsLocalStorageOverride
+            && typeof pcjsLocalStorageOverride.getItem == 'function'
+            && typeof pcjsLocalStorageOverride.setItem == 'function') {
+            return true;
+        }
+
         if (Web.fLocalStorage == null) {
             var f = false;
             if (window) {
@@ -580,7 +586,13 @@ class Web {
         var sValue;
         if (window) {
             try {
-                sValue = window.localStorage.getItem(sKey);
+                if (typeof pcjsLocalStorageOverride == 'object' && pcjsLocalStorageOverride
+                    && typeof pcjsLocalStorageOverride.getItem == 'function') {
+                    sValue = pcjsLocalStorageOverride.getItem(sKey, value);
+                }
+                else {
+                    sValue = window.localStorage.getItem(sKey);
+                }
             } catch (e) {
                 Web.logLocalStorageError(e);
             }
@@ -598,6 +610,12 @@ class Web {
     static setLocalStorageItem(sKey, sValue)
     {
         try {
+            if (typeof pcjsLocalStorageOverride == 'object' && pcjsLocalStorageOverride
+                && typeof pcjsLocalStorageOverride.setItem == 'function') {
+                pcjsLocalStorageOverride.setItem(sKey, value);
+                return true;
+            }
+
             window.localStorage.setItem(sKey, sValue);
             return true;
         } catch (e) {
@@ -614,6 +632,12 @@ class Web {
     static removeLocalStorageItem(sKey)
     {
         try {
+            if (typeof pcjsLocalStorageOverride == 'object' && pcjsLocalStorageOverride
+                && typeof pcjsLocalStorageOverride.removeItem == 'function') {
+                pcjsLocalStorageOverride.removeItem(sKey);
+                return true;
+            }
+
             window.localStorage.removeItem(sKey);
         } catch (e) {
             Web.logLocalStorageError(e);
@@ -699,7 +723,7 @@ class Web {
      *
      *      https://developer.mozilla.org/en-US/docs/Browser_detection_using_the_user_agent
      *
-     * @param {string} [sDevice] (eg, "iPad" to check for iPad, or "!iPad" to specifically exclude it) 
+     * @param {string} [sDevice] (eg, "iPad" to check for iPad, or "!iPad" to specifically exclude it)
      * @return {boolean} is true if the browser appears to be a mobile (ie, non-desktop) web browser, false if not
      */
     static isMobile(sDevice)
